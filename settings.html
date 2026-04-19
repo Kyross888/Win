@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <!-- PWA Manifest & Theme -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Luna's POS">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icon-96x96.png">
+    <link rel="icon" href="favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS - Settings</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- THEME VARIABLES --- */
+        /* These variables are crucial for the dynamic theme feature. 
+            Javascript will target these specific names (--primary) and change 
+            their hex codes, instantly updating the color everywhere on the page. */
+        
+         :root {
+            --primary: #5a67d8;
+            --primary-hover: #434190;
+            --bg: #f4f6f9;
+            --white: #ffffff;
+            --text-dark: #2d3748;
+            --text-light: #718096;
+            --danger: #e53e3e;
+            --border: #e2e8f0;
+        }
+        /* CSS Reset to ensure consistency across different web browsers */
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        /* Flexbox layout to place the sidebar and main content side-by-side */
+        
+        body {
+            background: var(--bg);
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            /* Prevents the body from scrolling; only inner containers scroll */
+            color: var(--text-dark);
+        }
+        /* --- SIDEBAR NAVIGATION --- */
+        
+        .sidebar {
+            width: 250px;
+            background: var(--white);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            border-right: 1px solid var(--border);
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+            flex-shrink: 0;
+            /* Prevents the sidebar from squishing on smaller screens */
+        }
+        
+        .sidebar.collapsed {
+            width: 80px;
+        }
+        
+        .brand {
+            margin-bottom: 30px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .brand img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+        
+        .sidebar.collapsed .brand img {
+            width: 40px;
+        }
+        
+        .nav-links {
+            list-style: none;
+        }
+        
+        .nav-links li {
+            margin-bottom: 10px;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-light);
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            border-radius: 8px;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        
+        .nav-links a:hover,
+        .nav-links a.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .nav-links i {
+            min-width: 30px;
+            font-size: 18px;
+        }
+        /* Hides the text labels when the sidebar shrinks */
+        
+        .sidebar.collapsed .nav-links span {
+            display: none;
+        }
+        /* --- MAIN CONTENT AREA --- */
+        
+        .main {
+            flex-grow: 1;
+            /* Takes up all remaining space next to the sidebar */
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: white;
+            padding: 15px 30px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            height: 70px;
+        }
+        /* This is the primary layout container for the settings page.
+          CSS Grid is used to place the settings-nav (280px wide) on the left,
+          and the active settings-panel (1fr, which means "the remaining space") on the right.
+        */
+        
+        .content {
+            padding: 30px;
+            overflow-y: auto;
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 30px;
+        }
+        /* --- SETTINGS SUB-NAVIGATION (LEFT COLUMN) --- */
+        
+        .settings-nav {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            height: fit-content;
+            /* Prevents the nav from stretching to the full height of the panel */
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        /* The avatar box at the top of the settings nav */
+        
+        .user-preview {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        
+        .user-avatar {
+            width: 70px;
+            height: 70px;
+            background: #edf2f7;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-size: 28px;
+            color: var(--primary);
+            border: 2px solid var(--border);
+        }
+        /* The buttons used to switch between settings panels */
+        
+        .tab-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            background: none;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-light);
+            font-weight: 600;
+            margin-bottom: 5px;
+            transition: 0.2s;
+        }
+        /* Highlight state for the currently active tab */
+        
+        .tab-btn.active {
+            background: #ebf4ff;
+            color: var(--primary);
+        }
+        
+        .tab-btn:hover:not(.active) {
+            background: #f8fafc;
+        }
+        /* --- SETTINGS PANELS (RIGHT COLUMN) --- */
+        
+        .settings-panel {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            animation: fadeIn 0.3s ease;
+            /* Adds a subtle upward slide when panels are switched */
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .section-title {
+            font-size: 18px;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f7fafc;
+            font-weight: bold;
+            color: var(--text-dark);
+        }
+        /* Form Styling inside the panels */
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 14px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #f8fafc;
+            transition: 0.2s;
+            outline: none;
+        }
+        
+        input:focus {
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.1);
+        }
+        
+        .btn-save {
+            background: var(--primary);
+            color: white;
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        
+        .btn-save:hover {
+            background: var(--primary-hover);
+        }
+        /* Utility class used by JS to toggle panel visibility */
+        
+        .hidden {
+            display: none;
+        }
+        /* --- THEME SELECTION STYLING --- */
+        
+        .color-options {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        /* The circular color swatches */
+        
+        .color-dot {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 0 0 1px #e2e8f0;
+            transition: 0.2s;
+        }
+        /* When clicked, the swatch grows slightly and gets a dark border ring */
+        
+        .color-dot.active {
+            box-shadow: 0 0 0 2px var(--text-dark);
+            transform: scale(1.1);
+        }
+        /* --- RESPONSIVE DESIGN --- */
+        /* Medium Screens: Stack the settings nav on top of the settings panel */
+        
+        @media (max-width: 900px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* Small Screens: Move main sidebar to top navigation */
+        
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                flex-direction: row;
+                padding: 10px;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+            .brand {
+                display: none;
+            }
+            .nav-links {
+                display: flex;
+                width: 100%;
+                overflow-x: auto;
+                gap: 5px;
+            }
+            .nav-links li {
+                margin-bottom: 0;
+            }
+            .nav-links a span {
+                display: none;
+            }
+            .header {
+                padding: 10px 20px;
+                height: auto;
+            }
+            .content {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="sidebar" id="sidebar">
+        <div class="brand" onclick="toggleSidebar()">
+            <img src="icon-512x512.png" alt="Luna's Logo">
+        </div>
+        <ul class="nav-links">
+            <li><a href="dashboard.html"><i class="fa-solid fa-gauge"></i> <span>Dashboard</span></a></li>
+            <li><a href="pos_terminal.html"><i class="fa-solid fa-cash-register"></i> <span>New Order</span></a></li>
+            <li><a href="inventory.html"><i class="fa-solid fa-box"></i> <span>Inventory</span></a></li>
+            <li><a href="salesreport.html"><i class="fa-solid fa-chart-line"></i> <span>Sales Report</span></a></li>
+            <li><a href="analytics.html"><i class="fa-solid fa-chart-pie"></i> <span>Analytics</span></a></li>
+            <li><a href="customer.html"><i class="fa-solid fa-users"></i> <span>Customers</span></a></li>
+            <li><a href="settings.html" class="active"><i class="fa-solid fa-gear"></i> <span>Settings</span></a></li>
+        </ul>
+    </nav>
+
+    <div class="main">
+        <header class="header">
+            <h2 id="current-title" style="margin:0">Store Profile</h2>
+            <button type="button" class="btn-save" onclick="alert('Configuration updated successfully!')">Save Changes</button>
+        </header>
+
+        <div class="content">
+            <aside class="settings-nav">
+                <div class="user-preview">
+                    <div class="user-avatar"><i class="fa-solid fa-user-tie"></i></div>
+                    <h3 style="margin:0; font-size: 16px;" id="profile-name">Loading…</h3>
+                    <small style="color: var(--text-light)" id="profile-branch">—</small>
+                </div>
+
+                <button class="tab-btn active" onclick="switchPanel('store', this)">
+                    <i class="fa-solid fa-user-circle"></i> My Profile
+                </button>
+                <button class="tab-btn" onclick="switchPanel('security', this)">
+                    <i class="fa-solid fa-shield-halved"></i> Security
+                </button>
+                <button class="tab-btn" style="color: var(--danger); margin-top: 20px;" onclick="confirmLogout()">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
+            </aside>
+
+            <div id="store-panel" class="settings-panel">
+                <div class="section-title">Account Profile</div>
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="profile-fullname" readonly style="background:#f8fafc;cursor:default;">
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="text" id="profile-email" readonly style="background:#f8fafc;cursor:default;">
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <input type="text" id="profile-role" readonly style="background:#f8fafc;cursor:default;">
+                </div>
+                <div class="form-group">
+                    <label>Branch</label>
+                    <input type="text" id="profile-branch-field" readonly style="background:#f8fafc;cursor:default;">
+                </div>
+
+                <div class="section-title" style="margin-top:40px">Theme Customization</div>
+                <p style="font-size: 14px; color: var(--text-light); margin-bottom: 15px;">
+                    Choose an accent color for the Luna's POS interface.
+                </p>
+                <div class="color-options">
+                    <div class="color-dot active" style="background: #5a67d8;" onclick="changeTheme('#5a67d8', '#434190')"></div>
+                    <div class="color-dot" style="background: #e53e3e;" onclick="changeTheme('#e53e3e', '#c53030')"></div>
+                    <div class="color-dot" style="background: #38a169;" onclick="changeTheme('#38a169', '#2f855a')"></div>
+                    <div class="color-dot" style="background: #ed8936;" onclick="changeTheme('#ed8936', '#c05621')"></div>
+                    <div class="color-dot" style="background: #2d3748;" onclick="changeTheme('#2d3748', '#1a202c')"></div>
+                </div>
+            </div>
+
+            <div id="security-panel" class="settings-panel hidden">
+                <div class="section-title">Change Password</div>
+                <div class="form-group">
+                    <label>Current Password</label>
+                    <input type="password" id="cur-password" placeholder="••••••••">
+                </div>
+                <div class="form-group">
+                    <label>New Password</label>
+                    <input type="password" id="new-password" placeholder="Enter new password">
+                </div>
+                <div class="form-group">
+                    <label>Confirm New Password</label>
+                    <input type="password" id="confirm-password" placeholder="Repeat new password">
+                </div>
+                <button class="btn-save" onclick="changePassword()" style="margin-bottom:20px;">Update Password</button>
+                <div id="pw-status" style="font-size:13px;margin-bottom:20px;"></div>
+                <div style="background:#fff5f5;color:var(--danger);padding:15px;border-radius:8px;font-size:13px;border:1px solid #fed7d7;margin-bottom:30px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Security Tip: Use a combination of letters, numbers, and symbols for a stronger password.
+                </div>
+
+                <div class="section-title">SMS Password Reset</div>
+                <p style="font-size:13px;color:var(--text-light);margin-bottom:15px;">
+                    Save your Philippine mobile number. If you forget your password, a reset code will be sent here via SMS.
+                </p>
+                <div class="form-group">
+                    <label>Mobile Number (PH)</label>
+                    <div style="display:flex;gap:8px;">
+                        <input type="text" id="phone-number" placeholder="e.g. 09171234567" style="flex:1;">
+                        <button class="btn-save" onclick="savePhone()" style="white-space:nowrap;padding:10px 16px;">Save Number</button>
+                    </div>
+                </div>
+                <div id="phone-status" style="font-size:13px;margin-top:8px;"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="js/api.js"></script>
+    <script>
+        // ── Apply saved theme on load ──────────────────────────
+        (function() {
+            const saved = localStorage.getItem('pos_theme');
+            if (saved) {
+                try {
+                    const t = JSON.parse(saved);
+                    document.documentElement.style.setProperty('--primary', t.primary);
+                    document.documentElement.style.setProperty('--primary-hover', t.hover);
+                } catch (e) {}
+            }
+        })();
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+
+        function switchPanel(panelName, btn) {
+            document.getElementById('store-panel').classList.add('hidden');
+            document.getElementById('security-panel').classList.add('hidden');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(panelName + '-panel').classList.remove('hidden');
+            btn.classList.add('active');
+            document.getElementById('current-title').innerText = btn.innerText.trim();
+        }
+
+        // ── Load real user profile from session ───────────────
+        const BRANCH_NAMES = {
+            1: 'Festive Mall',
+            2: 'SM Central Market',
+            3: 'General Luna',
+            4: 'Jaro',
+            5: 'Molo',
+            6: 'La Paz',
+            7: 'Calumpang',
+            8: 'Tagbak'
+        };
+
+        async function loadProfile() {
+            const res = await api.auth.me().catch(() => null);
+            if (!res || !res.success) {
+                window.location.href = 'login.html';
+                return;
+            }
+            const u = res.user;
+            // Use branch_name from API (fetched live from DB) — fallback to local map
+            const branchName = u.branch_name || (u.branch_id ? (BRANCH_NAMES[u.branch_id] || 'Branch ' + u.branch_id) : null);
+            const roleName = u.role === 'admin' ? 'Administrator' : 'Staff / Cashier';
+
+            document.getElementById('profile-name').textContent = u.name;
+            document.getElementById('profile-branch').textContent = branchName ? branchName + ' Branch' : 'No Branch Assigned';
+            document.getElementById('profile-fullname').value = u.name;
+            document.getElementById('profile-email').value = u.email;
+            document.getElementById('profile-role').value = roleName;
+            document.getElementById('profile-branch-field').value = branchName || 'Not assigned';
+
+            // Load saved phone if any
+            const savedPhone = localStorage.getItem('pos_phone_' + u.id);
+            if (savedPhone) document.getElementById('phone-number').value = savedPhone;
+        }
+
+        // ── Change Password ────────────────────────────────────
+        async function changePassword() {
+            const cur = document.getElementById('cur-password').value;
+            const nw = document.getElementById('new-password').value;
+            const confirm = document.getElementById('confirm-password').value;
+            const status = document.getElementById('pw-status');
+
+            if (!cur || !nw || !confirm) {
+                status.innerHTML = '<span style="color:var(--danger);">All fields are required.</span>';
+                return;
+            }
+            if (nw !== confirm) {
+                status.innerHTML = '<span style="color:var(--danger);">New passwords do not match.</span>';
+                return;
+            }
+            if (nw.length < 6) {
+                status.innerHTML = '<span style="color:var(--danger);">Password must be at least 6 characters.</span>';
+                return;
+            }
+
+            status.innerHTML = 'Updating…';
+
+            const res = await fetch('api/auth.php?action=change_password', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    current_password: cur,
+                    new_password: nw
+                }),
+            }).then(r => r.json()).catch(() => null);
+
+            if (res && res.success) {
+                status.innerHTML = '<span style="color:var(--success);">✓ Password updated successfully!</span>';
+                document.getElementById('cur-password').value = '';
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+            } else {
+                status.innerHTML = `<span style="color:var(--danger);">${(res && res.error) || 'Failed. Check your current password.'}</span>`;
+            }
+        }
+
+        // ── Save Phone Number (stored locally per user) ────────
+        async function savePhone() {
+            const phone = document.getElementById('phone-number').value.trim();
+            const status = document.getElementById('phone-status');
+            if (!phone) {
+                status.innerHTML = '<span style="color:var(--danger);">Enter a phone number first.</span>';
+                return;
+            }
+            if (!/^09\d{9}$/.test(phone)) {
+                status.innerHTML = '<span style="color:var(--danger);">Enter a valid PH number starting with 09 (e.g. 09171234567).</span>';
+                return;
+            }
+
+            const me = await api.auth.me().catch(() => null);
+            if (me && me.success) {
+                localStorage.setItem('pos_phone_' + me.user.id, phone);
+                status.innerHTML = '<span style="color:var(--success);">✓ Number saved! It will be used for password reset.</span>';
+            }
+        }
+
+        // ── Theme ──────────────────────────────────────────────
+        function changeTheme(primary, hover) {
+            document.documentElement.style.setProperty('--primary', primary);
+            document.documentElement.style.setProperty('--primary-hover', hover);
+            localStorage.setItem('pos_theme', JSON.stringify({
+                primary,
+                hover
+            }));
+            document.querySelectorAll('.color-dot').forEach(dot => {
+                dot.classList.remove('active');
+                if (dot.getAttribute('onclick').includes(primary)) dot.classList.add('active');
+            });
+            const btn = document.querySelector('.btn-save');
+            if (btn) {
+                btn.textContent = '✓ Theme Saved!';
+                setTimeout(() => btn.textContent = 'Save Changes', 2000);
+            }
+        }
+
+        function confirmLogout() {
+            if (confirm("Are you sure you want to log out of Luna's POS?")) {
+                api.auth.logout().finally(() => {
+                    window.location.href = 'login.html';
+                });
+            }
+        }
+
+        // ── Mark correct color dot on load ────────────────────
+        window.addEventListener('DOMContentLoaded', () => {
+            const saved = localStorage.getItem('pos_theme');
+            if (saved) {
+                try {
+                    const t = JSON.parse(saved);
+                    document.querySelectorAll('.color-dot').forEach(dot => {
+                        dot.classList.remove('active');
+                        if (dot.getAttribute('onclick').includes(t.primary)) dot.classList.add('active');
+                    });
+                } catch (e) {}
+            }
+            loadProfile();
+        });
+    </script>
+
+    <!-- PWA Registration -->
+    <script src="js/pwa.js"></script>
+</body>
+
+</html>

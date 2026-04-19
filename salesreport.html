@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <!-- PWA Manifest & Theme -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Luna's POS">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icon-96x96.png">
+    <link rel="icon" href="favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS - Sales Report | Luna's Ilonggo Legacy</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+         :root {
+            --primary: #5a67d8;
+            --bg: #f4f6f9;
+            --dark: #2d3748;
+            --white: #ffffff;
+            --border: #e2e8f0;
+            --success: #48bb78;
+            --info: #4299e1;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        
+        body {
+            background: var(--bg);
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            width: 250px;
+            background: var(--white);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            border-right: 1px solid var(--border);
+            transition: 0.3s;
+            flex-shrink: 0;
+        }
+        
+        .sidebar.collapsed {
+            width: 80px;
+        }
+        
+        .sidebar.collapsed .nav-links span {
+            display: none;
+        }
+        
+        .brand {
+            margin-bottom: 30px;
+            cursor: pointer;
+            text-align: center;
+        }
+        
+        .brand img {
+            max-width: 100%;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+        
+        .sidebar.collapsed .brand img {
+            width: 40px;
+        }
+        
+        .nav-links {
+            list-style: none;
+        }
+        
+        .nav-links li {
+            margin-bottom: 10px;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: #718096;
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            border-radius: 8px;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        
+        .nav-links a:hover,
+        .nav-links a.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .nav-links i {
+            min-width: 30px;
+            font-size: 18px;
+        }
+        
+        .main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        
+        .header {
+            background: var(--white);
+            padding: 0 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            min-height: 70px;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .date-picker {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--dark);
+        }
+        
+        .content {
+            padding: 25px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .icon-box {
+            width: 54px;
+            height: 54px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+        
+        .rev-icon {
+            background: linear-gradient(135deg, #ebf4ff, #c3d9ff);
+            color: var(--primary);
+            box-shadow: 0 4px 12px rgba(90, 103, 216, 0.18);
+        }
+        
+        .ord-icon {
+            background: linear-gradient(135deg, #f0fff4, #b2f5c8);
+            color: var(--success);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.18);
+        }
+        
+        .dish-card {
+            flex-direction: row;
+            align-items: center;
+            gap: 15px;
+            padding: 16px 20px;
+        }
+        
+        .dish-img-wrap {
+            width: 68px;
+            height: 68px;
+            border-radius: 14px;
+            overflow: hidden;
+            flex-shrink: 0;
+            border: 2px solid #fde9c4;
+            box-shadow: 0 4px 14px rgba(237, 137, 54, 0.22);
+        }
+        
+        .dish-img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .dish-label {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #ed8936;
+            background: #fffaf0;
+            border: 1px solid #fde9c4;
+            border-radius: 20px;
+            padding: 2px 8px;
+            margin-bottom: 4px;
+        }
+        
+        .summary-card h3 {
+            font-size: 13px;
+            color: #718096;
+            margin-bottom: 3px;
+        }
+        
+        .summary-card p {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+        
+        .kpi-sub {
+            font-size: 11px;
+            color: #a0aec0;
+            margin-top: 2px;
+            font-weight: 500;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f8fafc;
+            padding: 15px 20px;
+            text-align: left;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        td {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 14px;
+            color: var(--dark);
+        }
+        
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .badge-cash {
+            background: #e6fffa;
+            color: #2c7a7b;
+        }
+        
+        .badge-gcash {
+            background: #ebf8ff;
+            color: #2b6cb0;
+        }
+        
+        .badge-card {
+            background: #faf5ff;
+            color: #6b46c1;
+        }
+    </style>
+    <script>
+        (function() {
+            var s = localStorage.getItem("pos_theme");
+            if (s) {
+                try {
+                    var t = JSON.parse(s);
+                    document.documentElement.style.setProperty("--primary", t.primary);
+                    document.documentElement.style.setProperty("--primary-hover", t.hover);
+                } catch (e) {}
+            }
+        })()
+    </script>
+</head>
+
+<body>
+    <nav class="sidebar" id="sidebar">
+        <div class="brand" onclick="toggleSidebar()">
+            <img src="icon-512x512.png" alt="Logo">
+        </div>
+        <ul class="nav-links">
+            <li><a href="dashboard.html"><i class="fa-solid fa-gauge"></i> <span>Dashboard</span></a></li>
+            <li><a href="pos_terminal.html"><i class="fa-solid fa-cash-register"></i> <span>New Order</span></a></li>
+            <li><a href="inventory.html"><i class="fa-solid fa-box"></i> <span>Inventory</span></a></li>
+            <li><a href="salesreport.html" class="active"><i class="fa-solid fa-chart-line"></i> <span>Sales Report</span></a></li>
+            <li><a href="analytics.html"><i class="fa-solid fa-chart-pie"></i> <span>Analytics</span></a></li>
+            <li><a href="customer.html"><i class="fa-solid fa-users"></i> <span>Customers</span></a></li>
+            <li><a href="settings.html"><i class="fa-solid fa-gear"></i> <span>Settings</span></a></li>
+        </ul>
+    </nav>
+
+    <div class="main">
+        <header class="header">
+            <h2>Sales Report</h2>
+            <div class="header-actions">
+                <input type="date" class="date-picker" value="2026-02-22">
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="icon-box rev-icon"><i class="fa-solid fa-philippine-peso-sign"></i></div>
+                    <div>
+                        <h3>Total Revenue</h3>
+                        <p id="kpi-revenue">₱0.00</p>
+                        <div class="kpi-sub"><i class="fa-solid fa-arrow-trend-up" style="color:#48bb78; margin-right:4px;"></i>Today's earnings</div>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="icon-box ord-icon"><i class="fa-solid fa-bag-shopping"></i></div>
+                    <div>
+                        <h3>Total Orders</h3>
+                        <p id="kpi-orders">0</p>
+                        <div class="kpi-sub"><i class="fa-solid fa-circle-check" style="color:#48bb78; margin-right:4px;"></i>All completed</div>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="icon-box" style="background:linear-gradient(135deg,#fff5f5,#fed7d7);color:#e53e3e;box-shadow:0 4px 12px rgba(229,62,62,.18);">
+                        <i class="fa-solid fa-tags"></i>
+                    </div>
+                    <div>
+                        <h3>Total Discounts</h3>
+                        <p id="kpi-discount">₱0.00</p>
+                        <div class="kpi-sub">Discounts & coupons applied</div>
+                    </div>
+                </div>
+                <div class="summary-card dish-card">
+                    <div class="dish-img-wrap">
+                        <img src="img/17233972.webp" alt="Best Dish">
+                    </div>
+                    <div>
+                        <span class="dish-label"><i class="fa-solid fa-fire-flame-curved" style="margin-right:3px;"></i>Top Selling</span>
+                        <h3>Best Dish Today</h3>
+                        <p style="font-size:17px;" id="best-dish">—</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time/Date</th>
+                            <th>Order ID</th>
+                            <th>Type</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                        </tr>
+                    </thead>
+                    <tbody id="salesTableBody">
+                        <tr>
+                            <td>12:45 PM | Feb 22</td>
+                            <td style="font-weight: 600;">#4022</td>
+                            <td>Dine-in</td>
+                            <td>3 Items</td>
+                            <td style="font-weight: 700;">₱470.40</td>
+                            <td><span class="status-badge badge-cash">CASH</span></td>
+                        </tr>
+                        <tr>
+                            <td>11:20 AM | Feb 22</td>
+                            <td style="font-weight: 600;">#4021</td>
+                            <td>Take-out</td>
+                            <td>1 Item</td>
+                            <td style="font-weight: 700;">₱120.00</td>
+                            <td><span class="status-badge badge-gcash">CASH</span></td>
+                        </tr>
+                        <tr>
+                            <td>09:15 AM | Feb 22</td>
+                            <td style="font-weight: 600;">#4020</td>
+                            <td>Dine-in</td>
+                            <td>5 Items</td>
+                            <td style="font-weight: 700;">₱850.00</td>
+                            <td><span class="status-badge badge-card">CASH</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+
+        async function loadReport(date) {
+            const res = await api.salesReport.get({
+                date_from: date,
+                date_to: date
+            });
+            if (!res.success) return;
+
+            const {
+                summary,
+                best_seller,
+                transactions
+            } = res;
+
+            // KPI cards
+            document.getElementById('kpi-revenue').textContent = fmt(summary.total_revenue);
+            document.getElementById('kpi-orders').textContent = summary.total_orders;
+            document.getElementById('kpi-discount').textContent = fmt(summary.total_discounts);
+            document.getElementById('best-dish').textContent = best_seller ? best_seller.name : 'N/A';
+
+            // Table
+            const tbody = document.getElementById('salesTableBody');
+            tbody.innerHTML = '';
+            if (!transactions.length) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#718096;">No transactions for this date.</td></tr>';
+                return;
+            }
+            transactions.forEach(t => {
+                const dt = new Date(t.created_at);
+                const time = dt.toLocaleTimeString('en-PH', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                const date = dt.toLocaleDateString('en-PH', {
+                    month: 'short',
+                    day: 'numeric'
+                });
+                const badgeClass = t.payment_method === 'Cash' ? 'badge-cash' : t.payment_method === 'GCash' ? 'badge-gcash' : 'badge-card';
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${time} | ${date}</td>
+                        <td style="font-weight:600;">${t.reference_no}</td>
+                        <td>${t.order_type}</td>
+                        <td>${t.item_count} Item${t.item_count !== 1 ? 's' : ''}</td>
+                        <td style="font-weight:700;">${fmt(t.total)}</td>
+                        <td><span class="status-badge ${badgeClass}">${t.payment_method.toUpperCase()}</span></td>
+                    </tr>`;
+            });
+        }
+
+        async function init() {
+            await requireLogin();
+            const datePicker = document.querySelector('.date-picker');
+            const today = new Date().toISOString().split('T')[0];
+            datePicker.value = today;
+            await loadReport(today);
+            datePicker.addEventListener('change', () => loadReport(datePicker.value));
+        }
+
+        init();
+    </script>
+
+    <!-- PWA Registration -->
+    <script src="js/pwa.js"></script>
+</body>
+
+</html>

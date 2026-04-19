@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <!-- PWA Manifest & Theme -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Luna's POS">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icon-96x96.png">
+    <link rel="icon" href="favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS - Inventory Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- THEME VARIABLES --- */
+        
+         :root {
+            --primary: #5a67d8;
+            --bg: #f4f6f9;
+            --dark: #2d3748;
+            --white: #ffffff;
+            --danger: #e53e3e;
+            --success: #48bb78;
+            --warning: #92400e;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: var(--bg);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            /* Prevents the outer body from scrolling */
+        }
+        /* --- SIDEBAR NAVIGATION --- */
+        
+        .sidebar {
+            width: 250px;
+            background: var(--white);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            border-right: 1px solid #e2e8f0;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10;
+        }
+        
+        .sidebar.collapsed {
+            width: 80px;
+        }
+        
+        .brand {
+            margin-bottom: 30px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .brand img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+        
+        .sidebar.collapsed .brand img {
+            width: 40px;
+        }
+        
+        .nav-links {
+            list-style: none;
+        }
+        
+        .nav-links li {
+            margin-bottom: 10px;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: #718096;
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            border-radius: 8px;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        
+        .nav-links a:hover,
+        .nav-links a.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .nav-links i {
+            min-width: 30px;
+            font-size: 18px;
+        }
+        
+        .sidebar.collapsed span {
+            display: none;
+        }
+        /* --- MAIN CONTENT AREA --- */
+        
+        .main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: var(--white);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            height: 70px;
+        }
+        /* The scrollable area containing the table */
+        
+        .content {
+            padding: 30px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        /* --- DATA TABLE STYLING --- */
+        
+        table {
+            width: 100%;
+            background: white;
+            border-collapse: collapse;
+            border-radius: 10px;
+            overflow: hidden;
+            /* Ensures the rounded corners apply to the whole table */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        th,
+        td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        th {
+            background: #f8fafc;
+            color: #4a5568;
+            font-weight: 600;
+        }
+        /* --- STATUS PILLS --- */
+        /* These classes are dynamically applied by JS based on stock levels */
+        
+        .status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .green {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .red {
+            background: #fed7d7;
+            color: #822727;
+        }
+        
+        .yellow {
+            background: #fef3c7;
+            color: var(--warning);
+        }
+        /* --- BUTTONS & MODAL --- */
+        
+        .btn-add {
+            background: var(--primary);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .modal {
+            display: none;
+            /* Hidden until triggered */
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            /* Semi-transparent backdrop */
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            /* Centers the modal vertically and horizontally */
+            padding: 25px;
+            width: 400px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            /* Ensures padding doesn't affect total width */
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            /* Pushes buttons to the right */
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn-cancel {
+            background: #edf2f7;
+            color: #4a5568;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    </style>
+    <script>
+        (function() {
+            var s = localStorage.getItem("pos_theme");
+            if (s) {
+                try {
+                    var t = JSON.parse(s);
+                    document.documentElement.style.setProperty("--primary", t.primary);
+                    document.documentElement.style.setProperty("--primary-hover", t.hover);
+                } catch (e) {}
+            }
+        })()
+    </script>
+</head>
+
+<body>
+    <nav class="sidebar" id="sidebar">
+        <div class="brand" onclick="toggleSidebar()">
+            <img src="icon-512x512.png" alt="Luna's Logo">
+        </div>
+        <ul class="nav-links">
+            <li><a href="dashboard.html"><i class="fa-solid fa-gauge"></i> <span>Dashboard</span></a></li>
+            <li><a href="pos_terminal.html"><i class="fa-solid fa-cash-register"></i> <span>New Order</span></a></li>
+            <li><a href="inventory.html" class="active"><i class="fa-solid fa-box"></i> <span>Inventory</span></a></li>
+            <li><a href="salesreport.html"><i class="fa-solid fa-chart-line"></i> <span>Sales Report</span></a></li>
+            <li><a href="analytics.html"><i class="fa-solid fa-chart-pie"></i> <span>Analytics</span></a></li>
+            <li><a href="customer.html"><i class="fa-solid fa-users"></i> <span>Customers</span></a></li>
+            <li><a href="settings.html"><i class="fa-solid fa-gear"></i> <span>Settings</span></a></li>
+        </ul>
+    </nav>
+
+    <div class="main">
+        <header class="header">
+            <h2>Inventory Management</h2>
+            <button class="btn-add" onclick="openModal()">+ Add Product</button>
+        </header>
+
+        <div class="content">
+            <table id="inventoryTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <h3>Add New Product</h3>
+            <form id="productForm">
+                <div class="form-group">
+                    <label>Product Name</label>
+                    <input type="text" id="prodName" required placeholder="e.g. Pork Sisig">
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="prodCategory">
+                        <option value="Breakfast">All Day Breakfast</option>
+                        <option value="Merienda">Merienda</option>
+                        <option value="Burgers And Sandwiches">Burgers &amp; Sandwiches</option>
+                        <option value="Rice Meal">Rice Meal</option>
+                        <option value="Native">Native Specials</option>
+                        <option value="Dessert">Desserts</option>
+                        <option value="Drinks">Drinks</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Price (₱)</label>
+                    <input type="number" id="prodPrice" required placeholder="0.00" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Initial Stock</label>
+                    <input type="number" id="prodStock" required placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>Product Image <span id="imgHint" style="font-weight:400;color:#718096;">(optional)</span></label>
+                    <div id="currentImgPreview" style="display:none;margin-bottom:8px;">
+                        <img id="currentImgEl" src="" alt="Current image" style="height:70px;border-radius:6px;border:1px solid #e2e8f0;object-fit:cover;">
+                        <div style="font-size:11px;color:#718096;margin-top:4px;">Current image — leave file blank to keep it</div>
+                    </div>
+                    <input type="file" id="prodImage" accept="image/*" style="padding:6px;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn-add">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        let editingId = null;
+
+        async function init() {
+            await requireLogin();
+            await renderInventory();
+        }
+
+        async function renderInventory() {
+            const tbody = document.getElementById('inventoryBody');
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#718096;">Loading…</td></tr>';
+
+            const res = await api.products.list();
+            if (!res.success) {
+                tbody.innerHTML = `<tr><td colspan="7" style="color:red;padding:20px;">${res.error}</td></tr>`;
+                return;
+            }
+
+            const products = res.data;
+            tbody.innerHTML = '';
+
+            if (!products.length) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#718096;">No products yet. Click "+ Add Product" to start.</td></tr>';
+                return;
+            }
+
+            products.forEach(p => {
+                let statusClass, statusText;
+                if (p.stock <= 0) {
+                    statusClass = 'red';
+                    statusText = 'Out of Stock';
+                } else if (p.stock <= 10) {
+                    statusClass = 'yellow';
+                    statusText = 'Low Stock';
+                } else {
+                    statusClass = 'green';
+                    statusText = 'In Stock';
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>#${p.id}</td>
+                        <td><strong>${p.name}</strong></td>
+                        <td>${p.category}</td>
+                        <td>${fmt(p.price)}</td>
+                        <td>${p.stock}</td>
+                        <td><span class="status ${statusClass}">${statusText}</span></td>
+                        <td style="display:flex;gap:8px;align-items:center;">
+                            <button onclick="openEditModal(${p.id},'${p.name.replace(/'/g,"\\'")}','${p.category}',${p.price},${p.stock},'${(p.image_path||'').replace(/'/g,"\\'")}')"
+                                style="color:var(--primary);border:none;background:none;cursor:pointer;font-size:15px;" title="Edit">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deleteProduct(${p.id})"
+                                style="color:var(--danger);border:none;background:none;cursor:pointer;font-size:15px;" title="Delete">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        document.getElementById('productForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const btn = this.querySelector('.btn-add[type="submit"]');
+            btn.textContent = 'Saving…';
+            btn.disabled = true;
+
+            // Always use FormData so image uploads work for both create and update
+            const fd = new FormData();
+            fd.append('name', document.getElementById('prodName').value);
+            fd.append('category', document.getElementById('prodCategory').value);
+            fd.append('price', document.getElementById('prodPrice').value);
+            fd.append('stock', document.getElementById('prodStock').value);
+            const imgEl = document.getElementById('prodImage');
+            if (imgEl && imgEl.files[0]) fd.append('image', imgEl.files[0]);
+
+            const res = editingId ?
+                await api.products.update(editingId, fd) :
+                await api.products.create(fd);
+
+            btn.textContent = editingId ? 'Update Product' : 'Save Product';
+            btn.disabled = false;
+
+            if (res.success) {
+                closeModal();
+                this.reset();
+                editingId = null;
+                document.querySelector('.modal-content h3').textContent = 'Add New Product';
+                btn.textContent = 'Save Product';
+                await renderInventory();
+            } else {
+                alert(res.error || 'Failed to save product.');
+            }
+        };
+
+        function openEditModal(id, name, category, price, stock, imagePath) {
+            editingId = id;
+            document.getElementById('prodName').value = name;
+            document.getElementById('prodCategory').value = category;
+            document.getElementById('prodPrice').value = price;
+            document.getElementById('prodStock').value = stock;
+            document.querySelector('.modal-content h3').textContent = 'Edit Product';
+            document.querySelector('.btn-add[type="submit"]').textContent = 'Update Product';
+
+            // Show current image preview if one exists
+            const preview = document.getElementById('currentImgPreview');
+            const imgEl = document.getElementById('currentImgEl');
+            if (imagePath) {
+                imgEl.src = imagePath;
+                preview.style.display = 'block';
+            } else {
+                preview.style.display = 'none';
+            }
+
+            openModal();
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('Remove this product from the system?')) return;
+            const res = await api.products.delete(id);
+            if (res.success) await renderInventory();
+            else alert(res.error || 'Delete failed.');
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+
+        function openModal() {
+            document.getElementById('productModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            editingId = null;
+            document.getElementById('productModal').style.display = 'none';
+            document.getElementById('currentImgPreview').style.display = 'none';
+            document.getElementById('prodImage').value = '';
+        }
+
+        init();
+    </script>
+
+    <!-- PWA Registration -->
+    <script src="js/pwa.js"></script>
+</body>
+
+</html>
